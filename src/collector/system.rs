@@ -8,8 +8,14 @@ use crate::models::metrics::{
 use chrono::Utc;
 
 pub fn collect_system_data() -> SystemSnapshot {
+    let mut sys = System::new_all();
+    
+    sys.refresh_cpu_all();
+    sys.refresh_all();
+
     let hostname = System::host_name().unwrap_or_else(|| "Unknown".to_string());
     let uptime = System::uptime();
+    let cpu_usage = sys.global_cpu_usage();
 
     let mut networks = Networks::new_with_refreshed_list();
     networks.refresh(false); 
@@ -55,6 +61,7 @@ pub fn collect_system_data() -> SystemSnapshot {
     SystemSnapshot{
         hostname,
         uptime,
+        cpu_usage,
         network: network_metrics,
         temperatures: thermal_metrics,
         storage: storage_metrics,

@@ -29,6 +29,7 @@ pub struct StorageMetrics {
 pub struct SystemSnapshot {
     pub hostname: String,
     pub uptime: u64,
+    pub cpu_usage: f32,
     pub network: Vec<NetworkMetrics>,
     pub temperatures: Vec<ThermalMetrics>,
     pub storage: Vec<StorageMetrics>,
