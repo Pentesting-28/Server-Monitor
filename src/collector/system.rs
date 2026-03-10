@@ -14,6 +14,7 @@ pub fn collect_system_data() -> SystemSnapshot {
     let uptime = System::uptime();
     let networks = Networks::new_with_refreshed_list();
     let mut network_metrics: Vec<NetworkMetrics> = Vec::new();
+    
     for (interface_name, data) in networks.iter() {
         network_metrics.push(NetworkMetrics {
             interface: interface_name.clone(),
