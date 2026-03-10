@@ -1,3 +1,4 @@
+use chrono::Utc;
 use sysinfo::{System, Networks, Components, Disks};
 use crate::models::metrics::{
     SystemSnapshot,
@@ -5,7 +6,8 @@ use crate::models::metrics::{
     ThermalMetrics,
     StorageMetrics
 };
-use chrono::Utc;
+use crate::collector::services::collect_services_data;
+
 
 pub fn collect_system_data() -> SystemSnapshot {
     let mut sys = System::new_all();
@@ -17,6 +19,7 @@ pub fn collect_system_data() -> SystemSnapshot {
     let uptime = System::uptime();
     let cpu_usage = sys.global_cpu_usage();
 
+    // 1. Network
     let mut networks = Networks::new_with_refreshed_list();
     networks.refresh(false); 
     let mut network_metrics: Vec<NetworkMetrics> = Vec::new();
@@ -32,6 +35,7 @@ pub fn collect_system_data() -> SystemSnapshot {
         });
     }
 
+    // 2. Temperatures
     let mut components = Components::new_with_refreshed_list();
     components.refresh(false);
     let mut thermal_metrics: Vec<ThermalMetrics> = Vec::new();
@@ -43,6 +47,7 @@ pub fn collect_system_data() -> SystemSnapshot {
         });
     }
 
+    // 3. Storage
     let disks = Disks::new_with_refreshed_list();
     let mut storage_metrics = Vec::new();
 
@@ -58,6 +63,18 @@ pub fn collect_system_data() -> SystemSnapshot {
         });
     }
 
+    // 4. Services: Define a base list to monitor
+    let services_to_watch = vec![
+        "ssh",
+        "apache2",
+        "nginx",
+        "docker",
+        "postgresql",
+        "mysql"
+    ];
+
+    let service_metrics = collect_services_data(&services_to_watch);
+
     SystemSnapshot{
         hostname,
         uptime,
@@ -65,6 +82,7 @@ pub fn collect_system_data() -> SystemSnapshot {
         network: network_metrics,
         temperatures: thermal_metrics,
         storage: storage_metrics,
+        services: service_metrics,
         timestamp: Utc::now().timestamp(),
     }
 }

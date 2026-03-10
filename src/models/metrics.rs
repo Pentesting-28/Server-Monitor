@@ -26,6 +26,13 @@ pub struct StorageMetrics {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServiceStatus {
+    pub name: String,
+    pub status: String, // "active", "inactive", "failed"
+    pub is_active: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SystemSnapshot {
     pub hostname: String,
     pub uptime: u64,
@@ -33,5 +40,6 @@ pub struct SystemSnapshot {
     pub network: Vec<NetworkMetrics>,
     pub temperatures: Vec<ThermalMetrics>,
     pub storage: Vec<StorageMetrics>,
+    pub services: Vec<ServiceStatus>,
     pub timestamp: i64,
 }
