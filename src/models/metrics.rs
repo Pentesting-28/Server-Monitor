@@ -17,10 +17,20 @@ pub struct ThermalMetrics {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct StorageMetrics {
+    pub name: String,
+    pub mount_point: String,
+    pub total_space: u64,
+    pub available_space: u64,
+    pub used_space: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SystemSnapshot {
     pub hostname: String,
     pub uptime: u64,
     pub network: Vec<NetworkMetrics>,
     pub temperatures: Vec<ThermalMetrics>,
+    pub storage: Vec<StorageMetrics>,
     pub timestamp: i64,
 }

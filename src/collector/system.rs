@@ -1,18 +1,18 @@
-use sysinfo::{System, Networks, Components};
+use sysinfo::{System, Networks, Components, Disks};
 use crate::models::metrics::{
     SystemSnapshot,
     NetworkMetrics,
-    ThermalMetrics
+    ThermalMetrics,
+    StorageMetrics
 };
 use chrono::Utc;
 
 pub fn collect_system_data() -> SystemSnapshot {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-
     let hostname = System::host_name().unwrap_or_else(|| "Unknown".to_string());
     let uptime = System::uptime();
-    let networks = Networks::new_with_refreshed_list();
+
+    let mut networks = Networks::new_with_refreshed_list();
+    networks.refresh(false); 
     let mut network_metrics: Vec<NetworkMetrics> = Vec::new();
 
     for (interface_name, data) in networks.iter() {
@@ -26,7 +26,8 @@ pub fn collect_system_data() -> SystemSnapshot {
         });
     }
 
-    let components = Components::new_with_refreshed_list();
+    let mut components = Components::new_with_refreshed_list();
+    components.refresh(false);
     let mut thermal_metrics: Vec<ThermalMetrics> = Vec::new();
 
     for component in &components {
@@ -36,11 +37,27 @@ pub fn collect_system_data() -> SystemSnapshot {
         });
     }
 
+    let disks = Disks::new_with_refreshed_list();
+    let mut storage_metrics = Vec::new();
+
+    for disk in &disks {
+        let total = disk.total_space();
+        let available = disk.available_space();
+        storage_metrics.push(StorageMetrics {
+            name: disk.name().to_string_lossy().into_owned(),
+            mount_point: disk.mount_point().to_string_lossy().into_owned(),
+            total_space: total,
+            available_space: available,
+            used_space: total.saturating_sub(available),
+        });
+    }
+
     SystemSnapshot{
         hostname,
         uptime,
         network: network_metrics,
         temperatures: thermal_metrics,
+        storage: storage_metrics,
         timestamp: Utc::now().timestamp(),
     }
 }
