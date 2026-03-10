@@ -1,7 +1,7 @@
-use sysinfo::{System};
+use sysinfo::{System, Networks};
 use crate::models::metrics::{
     SystemSnapshot,
-    // NetworkMetrics,
+    NetworkMetrics,
     // ThermalMetrics
 };
 use chrono::Utc;
@@ -12,11 +12,23 @@ pub fn collect_system_data() -> SystemSnapshot {
 
     let hostname = System::host_name().unwrap_or_else(|| "Unknown".to_string());
     let uptime = System::uptime();
+    let networks = Networks::new_with_refreshed_list();
+    let mut network_metrics: Vec<NetworkMetrics> = Vec::new();
+    for (interface_name, data) in networks.iter() {
+        network_metrics.push(NetworkMetrics {
+            interface: interface_name.clone(),
+            rx_packets: data.packets_received(),
+            tx_packets: data.packets_transmitted(),
+            rx_errors: data.errors_on_received(),
+            tx_errors: data.errors_on_transmitted(),
+            collisions: 0,
+        });
+    }
 
     SystemSnapshot{
         hostname,
         uptime,
-        network: Vec::new(),
+        network: network_metrics,
         temperatures: Vec::new(),
         timestamp: Utc::now().timestamp(),
     }
