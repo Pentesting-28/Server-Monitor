@@ -43,3 +43,11 @@ pub struct SystemSnapshot {
     pub services: Vec<ServiceStatus>,
     pub timestamp: i64,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, sqlx::FromRow)]
+pub struct LogEntry {
+    pub id: i64,
+    pub level: String,
+    pub message: String,
+    pub timestamp: String,
+}
