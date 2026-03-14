@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sysinfo::{System, Networks, Components, Disks};
+use sysinfo::{System, Components, Disks};
 use crate::models::metrics::{
     SystemSnapshot,
     NetworkMetrics,
@@ -19,24 +19,21 @@ pub fn collect_system_data() -> SystemSnapshot {
     let cpu_usage = sys.global_cpu_usage();
 
     // 1. Network
-    let mut networks = Networks::new_with_refreshed_list();
-    networks.refresh(false); 
+    let linux_net_map = get_linux_network_metrics();
     let mut network_metrics: Vec<NetworkMetrics> = Vec::new();
 
-    // Helper to get collisions on Linux if available
-    let collisions_map = get_linux_network_collisions();
-
-    for (interface_name, data) in networks.iter() {
-        let collisions = collisions_map.get(interface_name).cloned().unwrap_or(0);
+    for (interface_name, data) in linux_net_map {
         network_metrics.push(NetworkMetrics {
-            interface: interface_name.clone(),
-            rx_packets: data.packets_received(),
-            tx_packets: data.packets_transmitted(),
-            rx_errors: data.errors_on_received(),
-            tx_errors: data.errors_on_transmitted(),
-            collisions,
+            interface: interface_name,
+            rx_packets: data.rx_packets,
+            tx_packets: data.tx_packets,
+            rx_errors: data.rx_errors,
+            tx_errors: data.tx_errors,
+            collisions: data.collisions,
         });
     }
+    // Sort interfaces by name for consistent UI display
+    network_metrics.sort_by(|a, b| a.interface.cmp(&b.interface));
 
     // 2. Temperatures
     let mut components = Components::new_with_refreshed_list();
@@ -119,18 +116,37 @@ pub fn collect_system_data() -> SystemSnapshot {
     }
 }
 
-/// Helper function to parse /proc/net/dev and extract collisions for Linux
-fn get_linux_network_collisions() -> std::collections::HashMap<String, u64> {
+struct LinuxNetMetrics {
+    rx_packets: u64,
+    tx_packets: u64,
+    rx_errors: u64,
+    tx_errors: u64,
+    collisions: u64,
+}
+
+/// Helper function to parse /proc/net/dev and extract exact packet counts for Linux
+fn get_linux_network_metrics() -> std::collections::HashMap<String, LinuxNetMetrics> {
     let mut map = std::collections::HashMap::new();
     if let Ok(content) = std::fs::read_to_string("/proc/net/dev") {
         for line in content.lines().skip(2) {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() > 14 {
+            if parts.len() >= 15 {
                 let interface = parts[0].trim_end_matches(':').to_string();
-                // Column 15 in /proc/net/dev is collisions
-                if let Ok(collisions) = parts[14].parse::<u64>() {
-                    map.insert(interface, collisions);
-                }
+                
+                let rx_packets = parts.get(2).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                let rx_errors = parts.get(3).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                
+                let tx_packets = parts.get(10).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                let tx_errors = parts.get(11).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                let collisions = parts.get(14).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+
+                map.insert(interface, LinuxNetMetrics {
+                    rx_packets,
+                    tx_packets,
+                    rx_errors,
+                    tx_errors,
+                    collisions,
+                });
             }
         }
     }
