@@ -8,7 +8,6 @@ use crate::models::metrics::{
 };
 use crate::collector::services::collect_services_data;
 
-
 pub fn collect_system_data() -> SystemSnapshot {
     let mut sys = System::new_all();
     
@@ -24,14 +23,18 @@ pub fn collect_system_data() -> SystemSnapshot {
     networks.refresh(false); 
     let mut network_metrics: Vec<NetworkMetrics> = Vec::new();
 
+    // Helper to get collisions on Linux if available
+    let collisions_map = get_linux_network_collisions();
+
     for (interface_name, data) in networks.iter() {
+        let collisions = collisions_map.get(interface_name).cloned().unwrap_or(0);
         network_metrics.push(NetworkMetrics {
             interface: interface_name.clone(),
             rx_packets: data.packets_received(),
             tx_packets: data.packets_transmitted(),
             rx_errors: data.errors_on_received(),
             tx_errors: data.errors_on_transmitted(),
-            collisions: 0,
+            collisions,
         });
     }
 
@@ -85,4 +88,22 @@ pub fn collect_system_data() -> SystemSnapshot {
         services: service_metrics,
         timestamp: Utc::now().timestamp(),
     }
+}
+
+/// Helper function to parse /proc/net/dev and extract collisions for Linux
+fn get_linux_network_collisions() -> std::collections::HashMap<String, u64> {
+    let mut map = std::collections::HashMap::new();
+    if let Ok(content) = std::fs::read_to_string("/proc/net/dev") {
+        for line in content.lines().skip(2) {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() > 14 {
+                let interface = parts[0].trim_end_matches(':').to_string();
+                // Column 15 in /proc/net/dev is collisions
+                if let Ok(collisions) = parts[14].parse::<u64>() {
+                    map.insert(interface, collisions);
+                }
+            }
+        }
+    }
+    map
 }
