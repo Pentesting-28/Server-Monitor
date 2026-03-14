@@ -41,6 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut lock = state_for_collector.write().unwrap();
                 *lock = Some(snapshot.clone());
             }
+            
             for service in &snapshot.services {
                 let current_status = service.status.clone();
                 if let Some(old_status) = previous_services.get(&service.name) {
