@@ -53,12 +53,26 @@ pub fn collect_system_data() -> SystemSnapshot {
     // 3. Storage
     let disks = Disks::new_with_refreshed_list();
     let mut storage_metrics = Vec::new();
+    let mut seen_names = std::collections::HashSet::new();
 
     for disk in &disks {
+        let name = disk.name().to_string_lossy().into_owned();
+        let fs = disk.file_system().to_string_lossy().to_lowercase();
         let total = disk.total_space();
+
+        // Filter out virtual file systems and disks labeled "none"
+        if total == 0 || name == "none" || fs.contains("tmpfs") || fs.contains("squashfs") || fs.contains("overlay") {
+            continue;
+        }
+
+        // Keep only distinct disks (prevents duplicates from multiple mount points)
+        if !seen_names.insert(name.clone()) {
+            continue;
+        }
+
         let available = disk.available_space();
         storage_metrics.push(StorageMetrics {
-            name: disk.name().to_string_lossy().into_owned(),
+            name,
             mount_point: disk.mount_point().to_string_lossy().into_owned(),
             total_space: total,
             available_space: available,
