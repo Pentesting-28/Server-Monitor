@@ -11,7 +11,7 @@ use tower_http::cors::CorsLayer;
 use std::collections::HashMap;
 
 use collector::system::collect_system_data;
-use db::database::{init_db, save_metrics, save_service_event, prune_old_data};
+use db::database::{init_db, save_metrics, save_service_event, save_system_log, prune_old_data};
 use api::handlers::{get_metrics, get_logs, SharedState, AppState};
 
 #[tokio::main]
@@ -58,7 +58,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(old_status) = previous_services.get(&service.name) {
                     if *old_status != current_status {
                         tracing::warn!("Service {} changed: {} -> {}", service.name, old_status, current_status);
+                        
                         let _ = save_service_event(&pool_for_collector, &service.name, &current_status).await;
+                        
+                        let level = if current_status == "active" { "info" } else { "warning" };
+                        let msg = format!("El servicio '{}' cambió su estado a: {}", service.name, current_status);
+                        let _ = save_system_log(&pool_for_collector, level, &msg).await;
                     }
                 }
                 previous_services.insert(service.name.clone(), current_status);

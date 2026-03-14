@@ -63,6 +63,15 @@ pub async fn save_service_event(pool: &SqlitePool, name: &str, status: &str) -> 
     Ok(())
 }
 
+pub async fn save_system_log(pool: &SqlitePool, level: &str, message: &str) -> Result<(), Box<dyn Error>> {
+    sqlx::query("INSERT INTO system_logs (level, message) VALUES (?, ?)")
+        .bind(level)
+        .bind(message)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
 pub async fn prune_old_data(pool: &SqlitePool) -> Result<(), Box<dyn Error>> {
     sqlx::query("DELETE FROM metrics_history WHERE timestamp < datetime('now', '-24 hours')")
         .execute(pool)
