@@ -6,7 +6,6 @@ import {
   Network, 
   Thermometer, 
   Clock,
-  Calendar,
   LayoutDashboard,
   FileText,
   Server,
@@ -65,7 +64,6 @@ function App() {
     fetchMetrics();
     const metricsInterval = setInterval(fetchMetrics, 3000);
     
-    // Fetch logs initially and then more slowly
     fetchLogs();
     const logsInterval = setInterval(fetchLogs, 10000);
     
@@ -83,12 +81,20 @@ function App() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getLogLevelBadge = (level) => {
+    const l = level.toLowerCase();
+    if (l === 'error') return 'badge badge-danger';
+    if (l === 'warn') return 'badge badge-warning';
+    if (l === 'info') return 'badge badge-info';
+    return 'badge badge-primary';
+  };
+
   const renderDashboard = () => (
     <>
       <header>
         <div>
           <h1>Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Métricas actuales de {metrics?.hostname}</p>
+          <p className="text-muted">Métricas actuales de {metrics?.hostname}</p>
         </div>
         <div className="status-badge">
           <div className={`status-indicator ${error ? 'pulse' : ''}`} style={{ background: error ? 'var(--danger)' : 'var(--success)' }}></div>
@@ -123,7 +129,7 @@ function App() {
             <span className="card-title">RunTime (up)</span>
             <Clock className="card-icon" size={18} />
           </div>
-          <div className="card-value" style={{ fontSize: '1.5rem' }}>
+          <div className="card-value text-xl">
             {Math.floor(metrics?.uptime / 3600)}h {Math.floor((metrics?.uptime % 3600) / 60)}m
           </div>
           <p className="card-subtitle">Encendido: {new Date(metrics?.timestamp * 1000).toLocaleDateString()}</p>
@@ -134,11 +140,11 @@ function App() {
             <span className="card-title">Temperaturas</span>
             <Thermometer className="card-icon" size={18} />
           </div>
-          <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
+          <div className="kv-list">
             {metrics?.temperatures.map((t, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>{t.label}</span>
-                <span>{t.temperature.toFixed(0)}°C</span>
+              <div key={i} className="kv-item">
+                <span className="kv-key">{t.label}</span>
+                <span className="kv-value">{t.temperature.toFixed(0)}°C</span>
               </div>
             ))}
           </div>
@@ -146,58 +152,64 @@ function App() {
       </div>
 
       <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
-        <div className="card">
-          <div className="card-header">
+        <div className="card no-padding">
+          <div className="card-inner-header">
             <span className="card-title">Monitor de Red</span>
             <Network className="card-icon" size={18} />
           </div>
-          <table style={{ width: '100%', fontSize: '0.8rem' }}>
-            <thead>
-              <tr style={{ color: 'var(--text-muted)' }}>
-                <th>INT</th>
-                <th>TX (Pkt)</th>
-                <th>RX (Pkt)</th>
-                <th>ERR</th>
-                <th>COLL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics?.network.map((net, i) => (
-                <tr key={i}>
-                  <td style={{ fontWeight: 600 }}>{net.interface}</td>
-                  <td>{net.tx_packets}</td>
-                  <td>{net.rx_packets}</td>
-                  <td style={{ color: (net.tx_errors + net.rx_errors) > 0 ? 'var(--danger)' : 'inherit' }}>{net.tx_errors + net.rx_errors}</td>
-                  <td>{net.collisions}</td>
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>INT</th>
+                  <th>TX (Pkt)</th>
+                  <th>RX (Pkt)</th>
+                  <th>ERR</th>
+                  <th>COLL</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {metrics?.network.map((net, i) => (
+                  <tr key={i}>
+                    <td className="font-semibold">{net.interface}</td>
+                    <td>{net.tx_packets}</td>
+                    <td>{net.rx_packets}</td>
+                    <td className={(net.tx_errors + net.rx_errors) > 0 ? 'text-danger' : ''}>
+                      {net.tx_errors + net.rx_errors}
+                    </td>
+                    <td>{net.collisions}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
+        <div className="card no-padding">
+          <div className="card-inner-header">
             <span className="card-title">Estado Discos</span>
             <HardDrive className="card-icon" size={18} />
           </div>
-          <table style={{ width: '100%', fontSize: '0.8rem' }}>
-            <thead>
-              <tr style={{ color: 'var(--text-muted)' }}>
-                <th>Disco</th>
-                <th>Uso</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics?.storage.slice(0, 4).map((disk, i) => (
-                <tr key={i}>
-                  <td style={{ maxWidth: '80px', overflow: 'hidden' }}>{disk.name}</td>
-                  <td>{formatBytes(disk.used_space)}</td>
-                  <td>{formatBytes(disk.total_space)}</td>
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Disco</th>
+                  <th>Uso</th>
+                  <th>Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {metrics?.storage.slice(0, 4).map((disk, i) => (
+                  <tr key={i}>
+                    <td className="font-semibold">{disk.name}</td>
+                    <td>{formatBytes(disk.used_space)}</td>
+                    <td>{formatBytes(disk.total_space)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -210,7 +222,7 @@ function App() {
           {metrics?.services.map(service => (
             <div key={service.name} className="service-item">
               <span className="service-name">{service.name}</span>
-              <span className={`service-status ${service.is_active ? 'status-active' : 'status-inactive'}`}>
+              <span className={`badge ${service.is_active ? 'badge-success' : 'badge-danger'}`}>
                 {service.status}
               </span>
             </div>
@@ -225,65 +237,44 @@ function App() {
       <header>
         <div>
           <h1>Logs del Sistema</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Eventos persistentes en sqlite:monitor.db</p>
+          <p className="text-muted">Eventos persistentes en sqlite:monitor.db</p>
         </div>
-        <button 
-          onClick={fetchLogs}
-          style={{ 
-            background: 'rgba(99, 102, 241, 0.1)', 
-            border: '1px solid var(--border-color)', 
-            color: 'var(--accent-primary)',
-            padding: '0.5rem 1rem',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontSize: '0.8rem'
-          }}
-        >
+        <button onClick={fetchLogs} className="btn">
           <RefreshCcw size={14} /> Refrescar
         </button>
       </header>
       
-      <div className="card" style={{ padding: '0' }}>
-        <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="card no-padding">
+        <div className="card-inner-header">
           <span className="card-title">Historial de Eventos</span>
-          <ListFilter size={16} color="var(--text-muted)" />
+          <ListFilter size={16} className="text-muted" />
         </div>
         
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+        <div className="data-table-container">
+          <table className="data-table bordered">
             <thead>
-              <tr style={{ background: 'rgba(255, 255, 255, 0.02)', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '1rem' }}>ID</th>
-                <th style={{ padding: '1rem' }}>SISTEMA</th>
-                <th style={{ padding: '1rem' }}>MENSAJE</th>
-                <th style={{ padding: '1rem' }}>FECHA / HORA</th>
+              <tr>
+                <th>ID</th>
+                <th>SISTEMA</th>
+                <th>MENSAJE</th>
+                <th>FECHA / HORA</th>
               </tr>
             </thead>
             <tbody>
               {logs.length > 0 ? logs.map((log) => (
-                <tr key={log.id} style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>#{log.id}</td>
-                  <td style={{ padding: '1rem' }}>
-                    <span style={{ 
-                      padding: '0.2rem 0.5rem', 
-                      borderRadius: '4px', 
-                      fontSize: '0.7rem', 
-                      fontWeight: 700,
-                      background: log.level === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-                      color: log.level === 'error' ? 'var(--danger)' : 'var(--accent-primary)'
-                    }}>
-                      {log.level.toUpperCase()}
+                <tr key={log.id}>
+                  <td className="text-muted">#{log.id}</td>
+                  <td>
+                    <span className={getLogLevelBadge(log.level)}>
+                      {log.level}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem' }}>{log.message}</td>
-                  <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{log.timestamp}</td>
+                  <td className="font-semibold">{log.message}</td>
+                  <td className="text-muted text-sm">{log.timestamp}</td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan="4" style={{ padding: '3rem', textAlign: 'center' }} className="text-muted">
                     No hay logs registrados todavía.
                   </td>
                 </tr>
@@ -297,7 +288,6 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar navigation */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <Server color="var(--accent-primary)" size={24} />
@@ -325,7 +315,6 @@ function App() {
         </nav>
       </aside>
 
-      {/* Main viewport */}
       <main className="main-content">
         {activeTab === 'dashboard' ? renderDashboard() : renderLogs()}
       </main>
