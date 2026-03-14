@@ -44,7 +44,7 @@ function App() {
       setLoading(false);
       setError(null);
     } catch (err) {
-      setError('Error de conexión');
+      setError('Connection Error');
       setLoading(false);
     }
   };
@@ -94,18 +94,18 @@ function App() {
       <header>
         <div>
           <h1>Dashboard</h1>
-          <p className="text-muted">Métricas actuales de {metrics?.hostname}</p>
+          <p className="text-muted">Current metrics for {metrics?.hostname}</p>
         </div>
         <div className="status-badge">
           <div className={`status-indicator ${error ? 'pulse indicator-error' : 'indicator-success'}`}></div>
-          {error || 'Sistema Estable'}
+          {error || 'System Stable'}
         </div>
       </header>
 
       <div className="metrics-grid">
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Carga de CPU</span>
+            <span className="card-title">CPU Load</span>
             <Cpu className="card-icon" size={18} />
           </div>
           <div className="card-value">{metrics?.cpu_usage.toFixed(1)}%</div>
@@ -132,12 +132,12 @@ function App() {
           <div className="card-value text-xl">
             {Math.floor(metrics?.uptime / 3600)}h {Math.floor((metrics?.uptime % 3600) / 60)}m
           </div>
-          <p className="card-subtitle">Encendido: {new Date(metrics?.timestamp * 1000).toLocaleDateString()}</p>
+          <p className="card-subtitle">Booted: {new Date(metrics?.timestamp * 1000).toLocaleDateString()}</p>
         </div>
 
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Temperaturas</span>
+            <span className="card-title">Temperatures</span>
             <Thermometer className="card-icon" size={18} />
           </div>
           <div className="kv-list">
@@ -154,7 +154,7 @@ function App() {
       <div className="metrics-grid metrics-grid-large">
         <div className="card no-padding">
           <div className="card-inner-header">
-            <span className="card-title">Monitor de Red</span>
+            <span className="card-title">Network Monitor</span>
             <Network className="card-icon" size={18} />
           </div>
           <div className="data-table-container">
@@ -187,15 +187,15 @@ function App() {
 
         <div className="card no-padding">
           <div className="card-inner-header">
-            <span className="card-title">Estado Discos</span>
+            <span className="card-title">Storage Status</span>
             <HardDrive className="card-icon" size={18} />
           </div>
           <div className="data-table-container">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Disco</th>
-                  <th>Uso</th>
+                  <th>Disk</th>
+                  <th>Used</th>
                   <th>Total</th>
                 </tr>
               </thead>
@@ -215,7 +215,7 @@ function App() {
 
       <div className="card">
         <div className="card-header">
-          <span className="card-title">Servicios Principales</span>
+          <span className="card-title">Core Services</span>
           <Activity className="card-icon" size={18} />
         </div>
         <div className="services-grid services-grid-auto">
@@ -236,17 +236,17 @@ function App() {
     <>
       <header>
         <div>
-          <h1>Logs del Sistema</h1>
-          <p className="text-muted">Eventos persistentes en sqlite:monitor.db</p>
+          <h1>System Logs</h1>
+          <p className="text-muted">Persistent events in sqlite:monitor.db</p>
         </div>
         <button onClick={fetchLogs} className="btn">
-          <RefreshCcw size={14} /> Refrescar
+          <RefreshCcw size={14} /> Refresh
         </button>
       </header>
       
       <div className="card no-padding">
         <div className="card-inner-header">
-          <span className="card-title">Historial de Eventos</span>
+          <span className="card-title">Event History</span>
           <ListFilter size={16} className="text-muted" />
         </div>
         
@@ -255,9 +255,9 @@ function App() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>SISTEMA</th>
-                <th>MENSAJE</th>
-                <th>FECHA / HORA</th>
+                <th>SYSTEM</th>
+                <th>MESSAGE</th>
+                <th>DATE / TIME</th>
               </tr>
             </thead>
             <tbody>
@@ -275,7 +275,7 @@ function App() {
               )) : (
                 <tr>
                   <td colSpan="4" className="text-muted text-center p-3rem">
-                    No hay logs registrados todavía.
+                    No logs recorded yet.
                   </td>
                 </tr>
               )}

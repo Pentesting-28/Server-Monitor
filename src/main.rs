@@ -62,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let _ = save_service_event(&pool_for_collector, &service.name, &current_status).await;
                         
                         let level = if current_status == "active" { "info" } else { "warning" };
-                        let msg = format!("El servicio '{}' cambió su estado a: {}", service.name, current_status);
+                        let msg = format!("Service '{}' changed status to: {}", service.name, current_status);
                         let _ = save_system_log(&pool_for_collector, level, &msg).await;
                     }
                 }
