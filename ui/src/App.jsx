@@ -97,7 +97,7 @@ function App() {
           <p className="text-muted">Métricas actuales de {metrics?.hostname}</p>
         </div>
         <div className="status-badge">
-          <div className={`status-indicator ${error ? 'pulse' : ''}`} style={{ background: error ? 'var(--danger)' : 'var(--success)' }}></div>
+          <div className={`status-indicator ${error ? 'pulse indicator-error' : 'indicator-success'}`}></div>
           {error || 'Sistema Estable'}
         </div>
       </header>
@@ -109,7 +109,7 @@ function App() {
             <Cpu className="card-icon" size={18} />
           </div>
           <div className="card-value">{metrics?.cpu_usage.toFixed(1)}%</div>
-          <div style={{ height: '70px', marginTop: '1rem' }}>
+          <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={history}>
                 <defs>
@@ -151,7 +151,7 @@ function App() {
         </div>
       </div>
 
-      <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+      <div className="metrics-grid metrics-grid-large">
         <div className="card no-padding">
           <div className="card-inner-header">
             <span className="card-title">Monitor de Red</span>
@@ -218,7 +218,7 @@ function App() {
           <span className="card-title">Servicios Principales</span>
           <Activity className="card-icon" size={18} />
         </div>
-        <div className="services-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+        <div className="services-grid services-grid-auto">
           {metrics?.services.map(service => (
             <div key={service.name} className="service-item">
               <span className="service-name">{service.name}</span>
@@ -274,7 +274,7 @@ function App() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="4" style={{ padding: '3rem', textAlign: 'center' }} className="text-muted">
+                  <td colSpan="4" className="text-muted text-center p-3rem">
                     No hay logs registrados todavía.
                   </td>
                 </tr>
@@ -300,8 +300,8 @@ function App() {
             onClick={() => setActiveTab('dashboard')}
           >
             <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-            {activeTab === 'dashboard' && <ChevronRight size={14} style={{ marginLeft: 'auto' }} />}
+            <span className="nav-text">Dashboard</span>
+            {activeTab === 'dashboard' && <ChevronRight size={14} className="nav-chevron" />}
           </div>
           
           <div 
@@ -309,8 +309,8 @@ function App() {
             onClick={() => setActiveTab('logs')}
           >
             <FileText size={20} />
-            <span>Logs</span>
-            {activeTab === 'logs' && <ChevronRight size={14} style={{ marginLeft: 'auto' }} />}
+            <span className="nav-text">Logs</span>
+            {activeTab === 'logs' && <ChevronRight size={14} className="nav-chevron" />}
           </div>
         </nav>
       </aside>

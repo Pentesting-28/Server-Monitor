@@ -90,6 +90,10 @@ body {
   cursor: pointer;
 }
 
+.nav-chevron {
+  margin-left: auto;
+}
+
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
@@ -137,6 +141,9 @@ body {
   align-items: center;
 }
 
+.text-center { text-align: center; }
+.p-3rem { padding: 3rem; }
+
 /* =========================================================================
    Standardized Components
    ========================================================================= */
@@ -172,8 +179,16 @@ header h1 {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+}
+
+.indicator-success {
   background: var(--success);
   box-shadow: 0 0 12px var(--success);
+}
+
+.indicator-error {
+  background: var(--danger);
+  box-shadow: 0 0 12px var(--danger);
 }
 
 /* Cards */
@@ -182,6 +197,10 @@ header h1 {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+}
+
+.metrics-grid-large {
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
 }
 
 .card {
@@ -242,6 +261,11 @@ header h1 {
   color: var(--text-muted);
   font-size: 0.8rem;
   margin-top: 0.5rem;
+}
+
+.chart-container {
+  height: 70px;
+  margin-top: 1rem;
 }
 
 /* Buttons */
@@ -362,6 +386,10 @@ header h1 {
   gap: 1rem;
 }
 
+.services-grid-auto {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
 .service-item {
   background: rgba(15, 23, 42, 0.3);
   border: 1px solid var(--border-color);
@@ -402,4 +430,105 @@ header h1 {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================================================
+   Responsive Design (Homogenization)
+   ========================================================================= */
+
+@media (max-width: 1024px) {
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  /* Transform Sidebar into a Top Bar */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .sidebar-logo {
+    margin-bottom: 0;
+    padding: 0;
+  }
+
+  .nav-menu {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .nav-item {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .nav-text {
+    display: none;
+  }
+  
+  .nav-chevron {
+    display: none;
+  }
+
+  /* Main Content Adjustments */
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 1rem;
+  }
+
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .status-badge {
+    align-self: flex-start;
+  }
+
+  /* Adjust Tables */
+  .data-table th, .data-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .metrics-grid[style*="gridTemplateColumns"],
+  .metrics-grid-large,
+  .services-grid-auto {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .card-inner-header {
+    padding: 1rem;
+  }
+  
+  .sidebar-logo span {
+    display: none;
+  }
 }
