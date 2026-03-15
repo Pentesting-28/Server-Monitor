@@ -8,7 +8,7 @@ use crate::models::metrics::{
 };
 use crate::collector::services::collect_services_data;
 
-pub fn collect_system_data() -> SystemSnapshot {
+pub async fn collect_system_data() -> SystemSnapshot {
     let mut sys = System::new_all();
     
     sys.refresh_cpu_all();
@@ -102,7 +102,7 @@ pub fn collect_system_data() -> SystemSnapshot {
         "mysql"
     ];
 
-    let service_metrics = collect_services_data(&services_to_watch);
+    let service_metrics = collect_services_data(&services_to_watch).await;
 
     SystemSnapshot{
         hostname,

@@ -23,24 +23,24 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [metrics, setMetrics] = useState(null);
   const [logs, setLogs] = useState([]);
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState(Array(20).fill({ time: '', cpu: 0 }));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/metrics');
+      const response = await fetch('/api/metrics');
       if (!response.ok) throw new Error('Backend offline');
       const data = await response.json();
       
-      setMetrics(data);
-      
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      // Batch updates to reduce re-renders
+      setMetrics(data);
       setHistory(prev => {
         const newPoint = { time: timeStr, cpu: parseFloat(data.cpu_usage.toFixed(1)) };
-        return [...prev, newPoint].slice(-15);
+        return [...prev, newPoint].slice(-20); // More points for smoother trend
       });
-      
       setLoading(false);
       setError(null);
     } catch (err) {
@@ -51,7 +51,7 @@ function App() {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/logs');
+      const response = await fetch('/api/logs');
       if (!response.ok) throw new Error('API Error');
       const data = await response.json();
       setLogs(data);
@@ -134,7 +134,9 @@ function App() {
           </div>
           <p className="card-subtitle">Booted: {new Date(metrics?.timestamp * 1000).toLocaleDateString()}</p>
         </div>
+      </div>
 
+      <div className="metrics-grid">
         <div className="card">
           <div className="card-header">
             <span className="card-title">Temperatures</span>
@@ -147,6 +149,35 @@ function App() {
                 <span className="kv-value">{t.temperature.toFixed(0)}°C</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="card no-padding">
+          <div className="card-inner-header">
+            <span className="card-title">Core Services</span>
+            <Activity className="card-icon" size={18} />
+          </div>
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics?.services.map((service, i) => (
+                  <tr key={i}>
+                    <td className="font-semibold">{service.name}</td>
+                    <td>
+                      <span className={`badge ${service.is_active ? 'badge-success' : 'badge-danger'}`}>
+                        {service.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -210,23 +241,6 @@ function App() {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">Core Services</span>
-          <Activity className="card-icon" size={18} />
-        </div>
-        <div className="services-grid services-grid-auto">
-          {metrics?.services.map(service => (
-            <div key={service.name} className="service-item">
-              <span className="service-name">{service.name}</span>
-              <span className={`badge ${service.is_active ? 'badge-success' : 'badge-danger'}`}>
-                {service.status}
-              </span>
-            </div>
-          ))}
         </div>
       </div>
     </>

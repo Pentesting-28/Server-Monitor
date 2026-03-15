@@ -6,13 +6,64 @@ mod models;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use axum::{routing::get, Router};
+use axum::{
+    routing::get,
+    Router,
+    response::{IntoResponse, Response},
+    http::{header, HeaderValue, StatusCode, Uri},
+    body::Body,
+};
 use tower_http::cors::CorsLayer;
 use std::collections::HashMap;
+use rust_embed::RustEmbed;
 
 use collector::system::collect_system_data;
 use db::database::{init_db, save_metrics, save_service_event, save_system_log, prune_old_data};
 use api::handlers::{get_metrics, get_logs, SharedState, AppState};
+
+#[derive(RustEmbed)]
+#[folder = "ui/dist/"]
+struct Assets;
+
+async fn static_handler(uri: Uri) -> impl IntoResponse {
+    let mut path = uri.path().trim_start_matches('/').to_string();
+    
+    if path.is_empty() {
+        path = "index.html".to_string();
+    }
+
+    match Assets::get(&path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(&path).first_or_octet_stream();
+            Response::builder()
+                .header(header::CONTENT_TYPE, HeaderValue::from_str(mime.as_ref()).unwrap())
+                .body(Body::from(content.data))
+                .unwrap()
+        }
+        None => {
+            if path.contains('.') {
+                return Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("404 Not Found"))
+                    .unwrap();
+            }
+            // Fallback to index.html for SPA routing
+            match Assets::get("index.html") {
+                Some(content) => {
+                    let mime = mime_guess::from_path("index.html").first_or_octet_stream();
+                    Response::builder()
+                        .header(header::CONTENT_TYPE, HeaderValue::from_str(mime.as_ref()).unwrap())
+                        .body(Body::from(content.data))
+                        .unwrap()
+                }
+                None => Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("404 Not Found"))
+                    .unwrap(),
+            }
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut previous_services: HashMap<String, String> = HashMap::new();
 
         loop {
-            let snapshot = collect_system_data();
+            let snapshot = collect_system_data().await;
             
             // Memory Update
             {
@@ -89,6 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/api/metrics", get(get_metrics))
         .route("/api/logs", get(get_logs))
+        .fallback(static_handler) // Serve embedded React frontend
         .layer(CorsLayer::permissive())
         .with_state(app_state);
 
