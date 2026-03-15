@@ -1,3 +1,154 @@
-fn main() {
-    println!("Hello, world!");
+mod api;
+mod collector;
+mod db;
+mod models;
+
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
+use tokio::time::sleep;
+use axum::{
+    routing::get,
+    Router,
+    response::{IntoResponse, Response},
+    http::{header, HeaderValue, StatusCode, Uri},
+    body::Body,
+};
+use tower_http::cors::CorsLayer;
+use std::collections::HashMap;
+use rust_embed::RustEmbed;
+
+use collector::system::collect_system_data;
+use db::database::{init_db, save_metrics, save_service_event, save_system_log, prune_old_data};
+use api::handlers::{get_metrics, get_logs, SharedState, AppState};
+
+#[derive(RustEmbed)]
+#[folder = "ui/dist/"]
+struct Assets;
+
+async fn static_handler(uri: Uri) -> impl IntoResponse {
+    let mut path = uri.path().trim_start_matches('/').to_string();
+    
+    if path.is_empty() {
+        path = "index.html".to_string();
+    }
+
+    match Assets::get(&path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(&path).first_or_octet_stream();
+            Response::builder()
+                .header(header::CONTENT_TYPE, HeaderValue::from_str(mime.as_ref()).unwrap())
+                .body(Body::from(content.data))
+                .unwrap()
+        }
+        None => {
+            if path.contains('.') {
+                return Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("404 Not Found"))
+                    .unwrap();
+            }
+            // Fallback to index.html for SPA routing
+            match Assets::get("index.html") {
+                Some(content) => {
+                    let mime = mime_guess::from_path("index.html").first_or_octet_stream();
+                    Response::builder()
+                        .header(header::CONTENT_TYPE, HeaderValue::from_str(mime.as_ref()).unwrap())
+                        .body(Body::from(content.data))
+                        .unwrap()
+                }
+                None => Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("404 Not Found"))
+                    .unwrap(),
+            }
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
+    tracing::info!("Starting server monitor");
+
+    // 1. Database Initialization
+    let db_url = "sqlite:monitor.db?mode=rwc";
+    let pool = init_db(db_url).await?;
+    tracing::info!("Database initialized successfully");
+
+    // 2. Shared State initialization
+    let metrics_state: SharedState = Arc::new(RwLock::new(None));
+    let state_for_collector = metrics_state.clone();
+    let pool_for_collector = pool.clone();
+
+    // 3. App State for Axum
+    let app_state = AppState {
+        metrics: metrics_state,
+        db: pool.clone(),
+    };
+
+    // 4. Background Collector
+    tokio::spawn(async move {
+        tracing::info!("Background collector started");
+        
+        let mut last_metrics_save = Instant::now();
+        let mut last_prune = Instant::now();
+        let mut previous_services: HashMap<String, String> = HashMap::new();
+
+        loop {
+            let snapshot = collect_system_data().await;
+            
+            // Memory Update
+            {
+                let mut lock = state_for_collector.write().unwrap();
+                *lock = Some(snapshot.clone());
+            }
+
+            // Service Events
+            for service in &snapshot.services {
+                let current_status = service.status.clone();
+                if let Some(old_status) = previous_services.get(&service.name) {
+                    if *old_status != current_status {
+                        tracing::warn!("Service {} changed: {} -> {}", service.name, old_status, current_status);
+                        
+                        let _ = save_service_event(&pool_for_collector, &service.name, &current_status).await;
+                        
+                        let level = if current_status == "active" { "info" } else { "warning" };
+                        let msg = format!("Service '{}' changed status to: {}", service.name, current_status);
+                        let _ = save_system_log(&pool_for_collector, level, &msg).await;
+                    }
+                }
+                previous_services.insert(service.name.clone(), current_status);
+            }
+
+            // Periodic Save
+            if last_metrics_save.elapsed() >= Duration::from_secs(60) {
+                let _ = save_metrics(&pool_for_collector, snapshot.cpu_usage, snapshot.uptime).await;
+                last_metrics_save = Instant::now();
+            }
+
+            // Pruning
+            if last_prune.elapsed() >= Duration::from_secs(3600) {
+                let _ = prune_old_data(&pool_for_collector).await;
+                last_prune = Instant::now();
+            }
+
+            sleep(Duration::from_secs(5)).await;
+        }
+    });
+
+    // 5. Axum Router
+    let app = Router::new()
+        .route("/api/metrics", get(get_metrics))
+        .route("/api/logs", get(get_logs))
+        .fallback(static_handler) // Serve embedded React frontend
+        .layer(CorsLayer::permissive())
+        .with_state(app_state);
+
+    // 6. Start Server
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    tracing::info!("API Server running on http://{}", listener.local_addr()?);
+    
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
