@@ -11,18 +11,6 @@ Server Monitor is designed to provide real-time visibility into your Linux serve
 - **Service Supervision:** Instantly view the status of core server daemon processes (e.g., `ssh`, `docker`, `nginx`).
 - **Persistent Event Logs:** Service state changes and system events are automatically logged to a local SQLite database (`monitor.db`).
 
-## Screenshots
-
-<div align="center">
-  <img src="docs/01.png" alt="Dashboard View" width="800"/>
-  <br/>
-  <br/>
-  <img src="docs/02.png" alt="Server Metrics Grid" width="800"/>
-  <br/>
-  <br/>
-  <img src="docs/03.png" alt="System Logs View" width="800"/>
-</div>
-
 ## Technical Stack
 
 - **Backend:** Rust, Axum (Web Framework), SQLx (SQLite), Tokio (Async Runtime), Sysinfo
@@ -101,6 +89,18 @@ The application follows a modular architecture:
 - **Collector:** Asynchronous Rust background tasks that sample system metrics and check service states in parallel for maximum performance.
 - **Database Layer:** A lightweight SQLite instance is used to persist historical metrics and event logs. Space is automatically pruned to prevent database bloat.
 - **Web Server:** Axum serves both the REST API (`/api/metrics`, `/api/logs`) and the embedded static SPA (Single Page Application) files.
+
+## Screenshots
+
+<div align="center">
+  <img src="docs/01.png" alt="Dashboard View" width="800"/>
+  <br/>
+  <br/>
+  <img src="docs/02.png" alt="Server Metrics Grid" width="800"/>
+  <br/>
+  <br/>
+  <img src="docs/03.png" alt="System Logs View" width="800"/>
+</div>
 
 ## License
 
